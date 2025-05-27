@@ -15,8 +15,8 @@ const Page = () => {
       <main>
         <HomeHero />
         <HomeFeatures />
-        <HomeReviews />
-        <HomeCta />
+
+
         <HomeFaqs />
       </main>
     </>

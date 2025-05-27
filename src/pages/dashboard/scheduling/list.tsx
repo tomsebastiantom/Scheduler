@@ -112,6 +112,7 @@ const useUsers = () => {
 
   return usersState;
 };
+
 const useSchedule = ({
   locationId = null,
   userId = null,
@@ -145,41 +146,43 @@ const useSchedule = ({
     error: null,
   });
 
-  const fetchSchedule = async ({
-    overrideLocationId = locationId,
+  const fetchSchedule = useCallback(async ({
+    overrideSiteId = locationId,
     overrideUserId = userId,
     overrideStartDate = startDate,
     overrideEndDate = endDate,
-    overrideLocationChanged = locationChanged,
+    overrideSiteChanged = locationChanged,
   } = {}) => {
     if (
-      (overrideLocationId || overrideUserId) &&
-      (overrideLocationChanged || overrideStartDate)
+      (overrideSiteId || overrideUserId) &&
+      (overrideSiteChanged || overrideStartDate)
     ) {
-      const startDate = overrideStartDate
+      // Use different variable names to avoid conflict with parameters
+      const fetchStartDate = overrideStartDate
         ? new Date(overrideStartDate)
         : new Date();
-      const endDate = overrideEndDate
+      const fetchEndDate = overrideEndDate
         ? new Date(overrideEndDate)
-        : new Date(startDate);
+        : new Date(fetchStartDate);
+      
       if (!overrideEndDate) {
-        endDate.setDate(endDate.getDate() + 7);
+        fetchEndDate.setDate(fetchEndDate.getDate() + 7);
       }
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(23, 59, 59, 999);
+      fetchStartDate.setHours(0, 0, 0, 0);
+      fetchEndDate.setHours(23, 59, 59, 999);
 
       try {
         setFetchStatus({ isLoading: true, isSuccess: false, error: null });
         const response = overrideUserId
           ? await mockGetShiftsByUserId(
               overrideUserId,
-              startDate.toISOString(),
-              endDate.toISOString()
+              fetchStartDate.toISOString(),
+              fetchEndDate.toISOString()
             )
           : await mockGetShiftsByLocationId(
-              overrideLocationId!,
-              startDate.toISOString(),
-              endDate.toISOString()
+              overrideSiteId!,
+              fetchStartDate.toISOString(),
+              fetchEndDate.toISOString()
             );
         setScheduleState({
           schedule: response,
@@ -191,45 +194,35 @@ const useSchedule = ({
         console.error(err);
       }
     }
-  };
+  }, [locationId, userId, startDate, endDate, locationChanged]); 
 
-  const saveSchedule = async (newShift: Shift) => {
+  const saveSchedule = useCallback(async (newShift: Shift) => {
     try {
       setSaveStatus({ isLoading: true, isSuccess: false, error: null });
       const response = await mockCreateShift(newShift);
       if (response) {
-        // setScheduleState((prevState) => ({
-        //   schedule: [...prevState.schedule, response.data],
-        //   scheduleCount: prevState.schedule.length + 1,
-        // }));
         setSaveStatus({ isLoading: false, isSuccess: true, error: null });
       }
     } catch (err) {
       console.error(err);
       setSaveStatus({ isLoading: false, isSuccess: false, error: err });
     }
-  };
+  }, []);
 
-  const deleteSchedule = async (shiftId: string) => {
+  const deleteSchedule = useCallback(async (shiftId: string) => {
     setDeleteStatus({ isLoading: true, isSuccess: false, error: null });
     try {
-      const response = await mockDeleteShift(shiftId);
-      // if (response) {
-      //    setScheduleState((prevState) => ({
-      //     schedule: prevState.schedule.filter((shift) => shift.id !== shiftId),
-      //    scheduleCount: prevState.schedule.length - 1,
-      //    }));
-      // }
+      await mockDeleteShift(shiftId);
       setDeleteStatus({ isLoading: false, isSuccess: true, error: null });
     } catch (err) {
       console.error(err);
       setDeleteStatus({ isLoading: false, isSuccess: false, error: err });
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSchedule();
-  }, [locationId, userId, startDate, endDate, locationChanged]);
+  }, [fetchSchedule]);
 
   return {
     scheduleState,
@@ -244,6 +237,7 @@ const useSchedule = ({
     },
   };
 };
+
 
 const Page = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);

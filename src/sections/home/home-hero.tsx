@@ -26,11 +26,11 @@ export const HomeHero: FC = () => {
       <Container maxWidth="lg">
         <Box maxWidth="sm">
           <Typography variant="h1" sx={{ mb: 2 }}>
-            Let us worry about your&nbsp;
+          
             <Typography component="span" color="primary.main" variant="inherit">
-              Scheduling your employees
+            Worry free Scheduling
             </Typography>
-            , you focus on serving your clients.
+
           </Typography>
           <Typography
             color="text.secondary"
@@ -42,9 +42,7 @@ export const HomeHero: FC = () => {
             Elevate your workforce management with our comprehensive Employee
             Scheduling System. Simplify scheduling processes, enhance team
             communication, and increase productivity through an intuitive admin
-            dashboard, precise time-tracking, and real-time shift updates. Take
-            control of your staffing logistics and optimize your operational
-            workflow with our all-in-one solution.{" "}
+            dashboard, precise time-tracking, and real-time shift updates.{" "}
           </Typography>
           <Stack
             alignItems="center"
@@ -76,12 +74,9 @@ export const HomeHero: FC = () => {
               }
               variant="contained"
             >
-              Sign up
+              Try it now
             </Button>
-            <Button color="inherit" component={RouterLink}>
-              Login
-            </Button>
-          </Stack>
+              </Stack>
         </Box>
         <Box
           sx={{

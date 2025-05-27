@@ -225,19 +225,7 @@ export const SideNav: FC<SideNavProps> = (props) => {
               />
             ))}
           </Stack>
-          <Box sx={{ p: 3 }}>
-            <Typography variant="subtitle1">
-              Need help?
-            </Typography>
-            <Typography
-              color="neutral.400"
-              sx={{ mb: 2 }}
-              variant="body2"
-            >
-              Please contact us
-            </Typography>
-           
-          </Box>
+  
         </Stack>
       </Scrollbar>
     </Drawer>

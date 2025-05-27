@@ -140,10 +140,7 @@ export const TopNav: FC<TopNavProps> = (props) => {
                 </Box>
               )}
             </Stack>
-            <Chip
-              label="v0.0.1"
-              size="small"
-            />
+        
           </Stack>
           {mdUp && (
             <Stack

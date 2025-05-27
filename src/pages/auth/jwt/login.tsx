@@ -28,8 +28,8 @@ interface Values {
 }
 
 const initialValues: Values = {
-  email: "",
-  password: "",
+  email: "test",
+  password: "test",
   submit: null,
 };
 

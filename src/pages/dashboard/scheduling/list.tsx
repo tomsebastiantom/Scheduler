@@ -18,15 +18,6 @@ import { ScheduleListContainer } from "src/sections/dashboard/scheduling/schedul
 import { ScheduleLocationSelector } from "src/sections/dashboard/scheduling/schedule-location-selector";
 import { ScheduleCalender } from "src/sections/dashboard/scheduling/schedule-calender";
 
-import {
-  createShift,
-  deleteShift,
-  getShiftsBySiteId,
-  getShiftsByUserId,
-  getShiftsById,
-} from "src/api/shifts.api";
-import { getAllUsers } from "src/api/users.api";
-import { getAllSites } from "src/api/sites.api";
 
 import { mockGetShiftsByLocationId,mockDeleteShift,mockCreateShift,mockGetAllUsers,mockGetAllLocations, mockGetShiftsByUserId } from "src/api/data/test.api";
 import type { User } from "src/types/user";

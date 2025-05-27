@@ -30,7 +30,7 @@ const sections: Section[] = [
       {
         title: "Dashboard",
         path: "/dashboard",
-        icon: "",
+        icon: <SvgIcon inheritViewBox />,
         caption: "40+ screens",
         children: [
           {

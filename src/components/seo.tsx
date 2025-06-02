@@ -10,8 +10,8 @@ export const Seo: FC<SeoProps> = (props) => {
   const { title } = props;
 
   const fullTitle = title
-    ? title + ' | Nexa Evolve'
-    : ' Nexa Evolve';
+    ? title + ' | Scheduler Pro'
+    : ' Scheduler Pro';
 
   return (
     <Helmet>

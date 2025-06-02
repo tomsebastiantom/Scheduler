@@ -11,7 +11,7 @@ import { AccountPopover } from "./account-popover";
 
 export const AccountButton: FC = () => {
   const user = {
-    avatar: "/assets/avatars/avatar-neha-punita.png",
+    avatar: "/assets/avatars/avatar.png",
   };
   const popover = usePopover<HTMLButtonElement>();
 

@@ -33,29 +33,7 @@ export const HomeCta: FC = () => (
           A complete solutions for all your scheduling needs.
         </Typography>
       </Stack>
-      <Stack
-        alignItems="center"
-        direction="row"
-        justifyContent="center"
-        spacing={2}
-        sx={{ mt: 3 }}
-      >
-        <Button
-          component={RouterLink}
-          href={paths.dashboard.index}
-          variant="contained"
-        >
-          View Dashboard
-        </Button>
-        <Button
-          component={RouterLink}
-          href="/manual-login"
-          variant="outlined"
-          sx={{ color: 'neutral.100', borderColor: 'neutral.100' }}
-        >
-          Manual Login
-        </Button>
-      </Stack>
+      
     </Container>
   </Box>
 );

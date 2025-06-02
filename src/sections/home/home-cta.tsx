@@ -41,12 +41,19 @@ export const HomeCta: FC = () => (
         sx={{ mt: 3 }}
       >
         <Button
-          component="a"
-          // href="https://mui.com/store/items/devias-kit-pro"
-          // target="_blank"
+          component={RouterLink}
+          href={paths.dashboard.index}
           variant="contained"
         >
-          Purchase Now
+          View Dashboard
+        </Button>
+        <Button
+          component={RouterLink}
+          href="/manual-login"
+          variant="outlined"
+          sx={{ color: 'neutral.100', borderColor: 'neutral.100' }}
+        >
+          Manual Login
         </Button>
       </Stack>
     </Container>

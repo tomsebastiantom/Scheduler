@@ -28,11 +28,7 @@ const sections: Section[] = [
         title: 'Contact Us',
         path: '#'
       },
-      {
-        title: 'Documentation',
-        // external: true,
-        path:'#'
-      }
+
     ]
   },
   {
@@ -42,23 +38,12 @@ const sections: Section[] = [
         title: 'Terms & Conditions',
         path: '#'
       },
-      {
-        title: 'License',
-        path: '#'
-      },
-      {
-        title: 'Contact',
-        path: '#'
-      }
+
     ]
   },
   {
     title: 'Social',
     items: [
-      {
-        title: 'Instagram',
-        path: '#'
-      },
       {
         title: 'LinkedIn',
         path: '#'

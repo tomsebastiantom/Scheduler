@@ -28,7 +28,7 @@ export const HomeHero: FC = () => {
           <Typography variant="h1" sx={{ mb: 2 }}>
           
             <Typography component="span" color="primary.main" variant="inherit">
-            Worry free Scheduling
+            A complete solutions for all your scheduling needs.
             </Typography>
 
           </Typography>
@@ -74,7 +74,7 @@ export const HomeHero: FC = () => {
               }
               variant="contained"
             >
-              Try it now
+              View Dashboard
             </Button>
               </Stack>
         </Box>

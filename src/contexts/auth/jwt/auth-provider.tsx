@@ -9,7 +9,7 @@ import { Issuer } from "src/utils/auth";
 import type { State } from "./auth-context";
 import { AuthContext, initialState } from "./auth-context";
 import { login, logout } from "src/api/auth.api";
-import { mockLogin,mockLogout } from "src/api/data/test.api";
+import { mockLogin, mockLogout } from "src/api/data/test.api";
 const STORAGE_KEY = "accessToken";
 const STORAGE_KEY_REFRESH = "refreshToken";
 enum ActionType {
@@ -98,20 +98,37 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
 
   const initialize = useCallback(async (): Promise<void> => {
     try {
-      const accessToken = window.sessionStorage.getItem(STORAGE_KEY);
+      let accessToken = window.sessionStorage.getItem(STORAGE_KEY);
+
+      // Auto-login for portfolio demo - if no token exists, create a demo session
+      if (!accessToken) {
+        try {
+          const demoResponse = await mockLogin({
+            username: "portfolio-visitor",
+            password: "demo",
+          });
+          accessToken = demoResponse.accessToken;
+          window.sessionStorage.setItem(STORAGE_KEY, accessToken);
+          window.sessionStorage.setItem(
+            STORAGE_KEY_REFRESH,
+            demoResponse.refreshToken
+          );
+        } catch (err) {
+          console.log("Auto-login failed, proceeding as guest");
+        }
+      }
 
       if (accessToken) {
-        // const user = await authApi.me({ accessToken });
         const user = {
-          username: "username",
-          password: "password",
-          id: "dd",
-          name: "dd",
-          email: "dd",
-          phone: "dd",
-          role: "dd",
-          createdAt: "dd",
-          updatedAt: "dd",
+          username: "Portfolio Visitor",
+          password: "demo",
+          id: "demo-user",
+          name: "Portfolio Visitor",
+          email: "visitor@portfolio.com",
+          phone: "000-000-0000",
+          role: "visitor",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
 
         dispatch({
@@ -152,24 +169,21 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
 
   const signIn = useCallback(
     async (username: string, password: string): Promise<void> => {
-      const response = await mockLogin(
-        { username, password }
-        // { baseURL: "http://localhost:5000" });
-      );
+      const response = await mockLogin({ username, password });
       const { accessToken, refreshToken } = response;
-      // const user = await authApi.me({ accessToken });
-      // console.log("888 Login Response",response);
+
       const user = {
         username: username,
         password: password,
-        id: "dd",
-        name: "dd",
-        email: "dd",
-        phone: "dd",
-        role: "dd",
-        createdAt: "dd",
-        updatedAt: "dd",
+        id: "user-" + Date.now(),
+        name: username,
+        email: username + "@example.com",
+        phone: "000-000-0000",
+        role: "user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
+
       sessionStorage.setItem(STORAGE_KEY, accessToken);
       sessionStorage.setItem(STORAGE_KEY_REFRESH, refreshToken);
       dispatch({
@@ -188,16 +202,16 @@ export const AuthProvider: FC<AuthProviderProps> = (props) => {
       // const user = await authApi.me({ accessToken });
 
       // sessionStorage.setItem(STORAGE_KEY, accessToken);
-    const user:User = {
-      id: "dd",
-      username: "email",
-      password: "password",
-      name: "name",
-      email: "email",
-      phone: "phone",
-      createdAt: "createdAt",
-      updatedAt: "updatedAt",
-    };
+      const user: User = {
+        id: "dd",
+        username: "email",
+        password: "password",
+        name: "name",
+        email: "email",
+        phone: "phone",
+        createdAt: "createdAt",
+        updatedAt: "updatedAt",
+      };
       dispatch({
         type: ActionType.SIGN_UP,
         payload: {

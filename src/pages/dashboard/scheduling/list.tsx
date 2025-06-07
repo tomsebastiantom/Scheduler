@@ -18,8 +18,16 @@ import { ScheduleListContainer } from "src/sections/dashboard/scheduling/schedul
 import { ScheduleLocationSelector } from "src/sections/dashboard/scheduling/schedule-location-selector";
 import { ScheduleCalender } from "src/sections/dashboard/scheduling/schedule-calender";
 
-
-import { mockGetShiftsByLocationId,mockDeleteShift,mockCreateShift,mockGetAllUsers,mockGetAllLocations, mockGetShiftsByUserId } from "src/api/data/test.api";
+import {
+  mockGetShiftsByLocationId,
+  mockDeleteShift,
+  mockDeleteShiftPartial,
+  mockCreateShift,
+  mockGetAllUsers,
+  mockGetAllLocations,
+  mockGetShiftsByUserId,
+  mockGetExistingShiftsByLocationId,
+} from "src/api/data/test.api";
 import type { User } from "src/types/user";
 import { Location } from "src/types/location";
 import { Shift } from "src/types/shift";
@@ -137,79 +145,88 @@ const useSchedule = ({
     error: null,
   });
 
-  const fetchSchedule = useCallback(async ({
-    overrideSiteId = locationId,
-    overrideUserId = userId,
-    overrideStartDate = startDate,
-    overrideEndDate = endDate,
-    overrideSiteChanged = locationChanged,
-  } = {}) => {
-    if (
-      (overrideSiteId || overrideUserId) &&
-      (overrideSiteChanged || overrideStartDate)
-    ) {
-      // Use different variable names to avoid conflict with parameters
-      const fetchStartDate = overrideStartDate
-        ? new Date(overrideStartDate)
-        : new Date();
-      const fetchEndDate = overrideEndDate
-        ? new Date(overrideEndDate)
-        : new Date(fetchStartDate);
-      
-      if (!overrideEndDate) {
-        fetchEndDate.setDate(fetchEndDate.getDate() + 7);
-      }
-      fetchStartDate.setHours(0, 0, 0, 0);
-      fetchEndDate.setHours(23, 59, 59, 999);
+  const fetchSchedule = useCallback(
+    async ({
+      overrideSiteId = locationId,
+      overrideUserId = userId,
+      overrideStartDate = startDate,
+      overrideEndDate = endDate,
+      overrideSiteChanged = locationChanged,
+    } = {}) => {
+      if (
+        (overrideSiteId || overrideUserId) &&
+        (overrideSiteChanged || overrideStartDate)
+      ) {
+        // Use different variable names to avoid conflict with parameters
+        const fetchStartDate = overrideStartDate
+          ? new Date(overrideStartDate)
+          : new Date();
+        const fetchEndDate = overrideEndDate
+          ? new Date(overrideEndDate)
+          : new Date(fetchStartDate);
 
-      try {
-        setFetchStatus({ isLoading: true, isSuccess: false, error: null });
-        const response = overrideUserId
-          ? await mockGetShiftsByUserId(
-              overrideUserId,
-              fetchStartDate.toISOString(),
-              fetchEndDate.toISOString()
-            )
-          : await mockGetShiftsByLocationId(
-              overrideSiteId!,
-              fetchStartDate.toISOString(),
-              fetchEndDate.toISOString()
-            );
-        setScheduleState({
-          schedule: response,
-          scheduleCount: response.length,
-        });
-        setFetchStatus({ isLoading: false, isSuccess: true, error: null });
-      } catch (err) {
-        setFetchStatus({ isLoading: false, isSuccess: false, error: err });
-        console.error(err);
-      }
-    }
-  }, [locationId, userId, startDate, endDate, locationChanged]); 
+        if (!overrideEndDate) {
+          fetchEndDate.setDate(fetchEndDate.getDate() + 7);
+        }
+        fetchStartDate.setHours(0, 0, 0, 0);
+        fetchEndDate.setHours(23, 59, 59, 999);
 
+        try {
+          setFetchStatus({ isLoading: true, isSuccess: false, error: null });
+          const response = overrideUserId
+            ? await mockGetShiftsByUserId(
+                overrideUserId,
+                fetchStartDate.toISOString(),
+                fetchEndDate.toISOString()
+              )
+            : await mockGetShiftsByLocationId(
+                overrideSiteId!,
+                fetchStartDate.toISOString(),
+                fetchEndDate.toISOString()
+              );
+          setScheduleState({
+            schedule: response,
+            scheduleCount: response.length,
+          });
+          setFetchStatus({ isLoading: false, isSuccess: true, error: null });
+        } catch (err) {
+          setFetchStatus({ isLoading: false, isSuccess: false, error: err });
+          console.error(err);
+        }
+      }
+    },
+    [locationId, userId, startDate, endDate, locationChanged]
+  );
   const saveSchedule = useCallback(async (newShift: Shift) => {
     try {
       setSaveStatus({ isLoading: true, isSuccess: false, error: null });
       const response = await mockCreateShift(newShift);
       if (response) {
+        // Don't fetch - the UI is already optimistically updated
         setSaveStatus({ isLoading: false, isSuccess: true, error: null });
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to save shift:", err);
       setSaveStatus({ isLoading: false, isSuccess: false, error: err });
     }
   }, []);
-
-  const deleteSchedule = useCallback(async (shiftId: string) => {
-    setDeleteStatus({ isLoading: true, isSuccess: false, error: null });
-    try {
-      await mockDeleteShift(shiftId);
-      setDeleteStatus({ isLoading: false, isSuccess: true, error: null });
-    } catch (err) {
-      console.error(err);
-      setDeleteStatus({ isLoading: false, isSuccess: false, error: err });
-    }
-  }, []);
+  const deleteSchedule = useCallback(
+    async (shiftId: string) => {
+      setDeleteStatus({ isLoading: true, isSuccess: false, error: null });
+      try {
+        await mockDeleteShift(shiftId);
+        // Refresh the schedule after successful delete
+        await fetchSchedule({
+          overrideSiteId: locationId,
+        });
+        setDeleteStatus({ isLoading: false, isSuccess: true, error: null });
+      } catch (err) {
+        console.error("Failed to delete shift:", err);
+        setDeleteStatus({ isLoading: false, isSuccess: false, error: err });
+      }
+    },
+    [fetchSchedule, locationId]
+  );
 
   useEffect(() => {
     fetchSchedule();
@@ -228,7 +245,6 @@ const useSchedule = ({
     },
   };
 };
-
 
 const Page = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -256,8 +272,6 @@ const Page = () => {
     setSelectedLocation(locationId);
     setLocationChanged(true);
   }, []);
-
-
 
   const handleFiltersClose = useCallback((): void => {
     setOpenSidebar(false);

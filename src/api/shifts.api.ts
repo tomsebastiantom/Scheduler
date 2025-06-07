@@ -36,6 +36,24 @@ export const getShiftsBySiteId = (
 export const deleteShift = (shiftId: string, config?: ApiRequestConfig) => {
   return api.delete<Shift>(`${URLs.shiftUrl}/${shiftId}`, config);
 };
+
+export const deleteShiftPartial = (
+  shiftId: string,
+  deleteStartTime: string,
+  deleteEndTime: string,
+  config?: ApiRequestConfig
+) => {
+  return api.post<{
+    deletedInterval: { start: string; end: string };
+    resultingShifts: number;
+    isFullDeletion: boolean;
+    newShifts: Shift[];
+  }>(
+    `${URLs.shiftUrl}/${shiftId}/delete-partial`,
+    { deleteStartTime, deleteEndTime },
+    config
+  );
+};
 export const updateShift = (shift: Shift, config?: ApiRequestConfig) => {
   return api.put<Shift>(`${URLs.shiftUrl}`, shift, config);
 };

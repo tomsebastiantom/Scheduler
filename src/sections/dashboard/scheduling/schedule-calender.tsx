@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useCallback, useMemo } from "react";
+import { FC, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import * as React from "react";
 
@@ -28,7 +28,12 @@ import Autocomplete from "@mui/material/Autocomplete";
 import CloseIcon from "@mui/icons-material/Close";
 import { MobileTimePicker } from "@mui/x-date-pickers";
 import { toast } from "react-hot-toast";
-import { v4 as uuid } from "uuid";
+import {
+  mockDeleteShiftPartial,
+  mockGetShiftsByLocationId,
+  mockGetExistingShiftsByLocationId,
+  mockDeleteShift,
+} from "src/api/data/test.api";
 import CircularProgress from "@mui/material/CircularProgress";
 import Chip from "@mui/material/Chip";
 
@@ -115,7 +120,6 @@ interface ScheduleCalenderProps {
   setShifts: React.Dispatch<React.SetStateAction<ScheduleStoreState>>;
 }
 
-
 const isTimeOverlapping = (
   start1: string,
   end1: string,
@@ -153,7 +157,6 @@ const formatTimeLabel = (viewInterval: number, hindex: number): string => {
   }
   return `${hindex.toString().padStart(2, "0")}:00`;
 };
-
 
 const ShiftCreationModal: React.FC<ShiftCreationModalProps> = ({
   open,
@@ -339,7 +342,6 @@ const ShiftCreationModal: React.FC<ShiftCreationModalProps> = ({
   );
 };
 
-
 const IntervalSelector: FC<IntervalSelectorProps> = ({
   viewInterval,
   setViewInterval,
@@ -444,7 +446,6 @@ const WeekHeader: FC<WeekHeaderProps> = ({
   );
 };
 
-
 const DropTargetCell: FC<DropTargetCellProps> = ({
   currentShifts,
   startTime,
@@ -493,65 +494,96 @@ const DropTargetCell: FC<DropTargetCellProps> = ({
 
   return (
     <TableCell ref={dropRef} sx={cellSx}>
-      <Stack spacing={0.5}>
+      {" "}
+      <Stack spacing={1}>
         {currentShifts.map((shift) => {
           const user = users.find((u) => u.id === shift.userId);
           const isShiftLoading = loadingShiftIds.has(shift.id);
-          
+
+          const formatShiftTime = (dateString: string) => {
+            return new Date(dateString).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+          };
+
+          const shiftTimeRange = `${formatShiftTime(
+            shift.startTime
+          )} - ${formatShiftTime(shift.endTime)}`;
+
           return (
-            <Chip
+            <Box
               key={shift.id}
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: 'inherit' }}>
-                    {user?.name || "Unknown User"}
-                  </Typography>
-                  {isShiftLoading ? (
-                    <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                  ) : (
-                    <IconButton
-                      size="small"
-                      onClick={() =>
-                        onRemoveUser(
-                          shift.id,
-                          shift.userId,
-                          shift.startTime,
-                          shift.endTime
-                        )
-                      }
-                      sx={{ 
-                        color: 'inherit',
-                        p: 0.25,
-                        '&:hover': {
-                          bgcolor: 'rgba(255,255,255,0.2)'
-                        }
-                      }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                  )}
-                </Box>
-              }
-              variant="filled"
-              color="primary"
-              size="small"
-              sx={{
-                bgcolor: isShiftLoading ? 'grey.400' : 'primary.main',
-                color: 'white',
-                '& .MuiChip-label': {
+              sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: "8px",
+                  color: "text.secondary",
+                  textAlign: "center",
+                  lineHeight: 1,
+                }}
+              >
+                {shiftTimeRange}
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  bgcolor: isShiftLoading ? "grey.400" : "primary.main",
+                  color: "white",
+                  borderRadius: 1.5,
                   px: 1,
                   py: 0.5,
-                },
-                opacity: isShiftLoading ? 0.7 : 1,
-              }}
-            />
+                  opacity: isShiftLoading ? 0.7 : 1,
+                  cursor: "pointer",
+                  "&:hover": {
+                    bgcolor: isShiftLoading ? "grey.500" : "primary.dark",
+                  },
+                  gap: 0.5,
+                  minHeight: "24px",
+                }}
+                onClick={() => {
+                  if (!isShiftLoading) {
+                    onRemoveUser(
+                      shift.id,
+                      shift.userId,
+                      startTime,
+                      endTime || startTime
+                    );
+                  }
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: "bold",
+                    fontSize: "11px",
+                    flex: 1,
+                    textAlign: "left",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {user?.name || "Unknown User"}
+                </Typography>
+
+                {/* Delete button or loading indicator */}
+                {isShiftLoading ? (
+                  <CircularProgress size={12} sx={{ color: "inherit" }} />
+                ) : (
+                  <DeleteIcon sx={{ fontSize: 14, opacity: 0.8 }} />
+                )}
+              </Box>
+            </Box>
           );
         })}
       </Stack>
     </TableCell>
   );
 };
-
 
 export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
   const {
@@ -575,9 +607,12 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
     return startOfWeek;
   });
   const [viewInterval, setViewInterval] = useState<number>(8);
-  const [loadingShiftIds, setLoadingShiftIds] = useState<Set<string>>(new Set());
+  const [loadingShiftIds, setLoadingShiftIds] = useState<Set<string>>(
+    new Set()
+  );
   const [isCreatingShift, setIsCreatingShift] = useState(false);
-
+  const lastFetchedRef = useRef<string | null>(null);
+  const skipNextFetchRef = useRef<boolean>(false);
 
   const endDate = useMemo(() => {
     const end = new Date(startDate);
@@ -597,7 +632,6 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
     });
   }, [startDate]);
 
-
   const handleDropUser = useCallback(
     async (
       user: User,
@@ -614,36 +648,36 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
         toast.error(`${user.name} already has a shift during this time period`);
         return;
       }
+      const startDate = new Date(startTime);
+      const endDate = new Date(endTime);
+      const startHour = startDate.getHours();
+      const duration = Math.round(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+      );
+      const deterministicId = `manual-${locationId}-${user.id}-${
+        startDate.toISOString().split("T")[0]
+      }-${startHour}-${duration}`;
 
       const newShift: Shift = {
-        id: uuid(),
+        id: deterministicId,
         userId: user.id,
         startTime,
         endTime,
         shiftType: "Regular",
         locationId,
       };
-
-
       setLoadingShiftIds((prev) => new Set(prev).add(newShift.id));
-
       try {
+        skipNextFetchRef.current = true;
 
         const newShifts = [...shifts, newShift];
         setShifts({ schedule: newShifts, scheduleCount: newShifts.length });
 
-
         await saveSchedule(newShift);
 
-        if (status.saveStatus.isSuccess) {
-          toast.success(`${user.name} scheduled successfully`);
-        } else {
-          throw new Error(
-            status.saveStatus.error?.message || "Failed to save shift"
-          );
-        }
+        toast.success(`${user.name} scheduled successfully`);
       } catch (error) {
-   
+        skipNextFetchRef.current = false;
         setShifts({ schedule: shifts, scheduleCount: shifts.length });
         toast.error(
           `Failed to schedule ${user.name}: ${
@@ -651,7 +685,6 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
           }`
         );
       } finally {
-
         setLoadingShiftIds((prev) => {
           const newSet = new Set(prev);
           newSet.delete(newShift.id);
@@ -659,16 +692,20 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
         });
       }
     },
-    [shifts, locationId, setShifts, saveSchedule, status.saveStatus]
+    [shifts, locationId, setShifts, saveSchedule]
   );
-
   const handleRemoveUser = useCallback(
-    async (id: string, userId: string, startTime: string, endTime: string) => {
-
+    async (
+      id: string,
+      userId: string,
+      deleteStartTime: string,
+      deleteEndTime: string
+    ) => {
       setLoadingShiftIds((prev) => new Set(prev).add(id));
 
       try {
-        const previousShifts = [...shifts];
+        skipNextFetchRef.current = true;
+
         const shiftToDelete = shifts.find((s) => s.id === id);
 
         if (!shiftToDelete) {
@@ -676,30 +713,132 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
           return;
         }
 
-     
-        const newShifts = shifts.filter((s) => s.id !== id);
-        setShifts({ schedule: newShifts, scheduleCount: newShifts.length });
+        const isSegment = id.includes("-segment-");
+        const user = users.find((u) => u.id === userId);
+        const userName = user?.name || "Unknown User";
 
-    
-        await deleteSchedule(id);
+        const formatTime = (dateString: string) => {
+          return new Date(dateString).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+        };
 
-        if (status.deleteStatus.isSuccess) {
-          toast.success("Shift removed successfully");
+        // Check if we're deleting the entire shift or just a portion
+        const shiftStart = new Date(shiftToDelete.startTime);
+        const shiftEnd = new Date(shiftToDelete.endTime);
+        const deleteStart = new Date(deleteStartTime);
+        const deleteEnd = new Date(deleteEndTime);
+
+        // Check if the deletion covers the entire shift
+        const isDeletingEntireShift =
+          deleteStart <= shiftStart && deleteEnd >= shiftEnd;
+
+        if (isDeletingEntireShift) {
+          // Delete the entire shift
+          const newShifts = shifts.filter((s) => s.id !== id);
+          setShifts({ schedule: newShifts, scheduleCount: newShifts.length });
+
+          await mockDeleteShift(id);
+
+          const deletedTimeRange = `${formatTime(
+            shiftToDelete.startTime
+          )} - ${formatTime(shiftToDelete.endTime)}`;
+          const deletionMessage = isSegment
+            ? `${userName}'s shift segment deleted`
+            : `${userName}'s shift deleted`;
+
+          toast.success(
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <span>{deletionMessage}</span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <span style={{ fontSize: "12px" }}>Time removed:</span>
+                <span
+                  style={{
+                    backgroundColor: "#ef4444",
+                    color: "white",
+                    padding: "2px 8px",
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {deletedTimeRange}
+                </span>
+              </div>
+            </div>
+          );
         } else {
-          throw new Error(
-            status.deleteStatus.error?.message || "Failed to delete shift"
+          // Partial deletion - use the clicked time interval
+          const actualDeleteStartTime = Math.max(
+            deleteStart.getTime(),
+            shiftStart.getTime()
+          );
+          const actualDeleteEndTime = Math.min(
+            deleteEnd.getTime(),
+            shiftEnd.getTime()
+          );
+
+          const deletionResult = await mockDeleteShiftPartial(
+            id,
+            new Date(actualDeleteStartTime).toISOString(),
+            new Date(actualDeleteEndTime).toISOString()
+          );
+
+          const newShifts = shifts.filter((s) => s.id !== id);
+
+          if (deletionResult.newShifts && deletionResult.newShifts.length > 0) {
+            newShifts.push(...deletionResult.newShifts);
+          }
+          setShifts({
+            schedule: newShifts,
+            scheduleCount: newShifts.length,
+          });
+
+          const deletedInterval = `${formatTime(
+            deletionResult.deletedInterval.start
+          )} - ${formatTime(deletionResult.deletedInterval.end)}`;
+
+          toast.success(
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <span>{userName}'s shift updated</span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <span style={{ fontSize: "12px" }}>Time removed:</span>
+                <span
+                  style={{
+                    backgroundColor: "#ef4444",
+                    color: "white",
+                    padding: "2px 8px",
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                  }}
+                >
+                  {deletedInterval}
+                </span>
+              </div>
+            </div>
           );
         }
       } catch (error) {
-     
+        skipNextFetchRef.current = false;
         setShifts({ schedule: shifts, scheduleCount: shifts.length });
+
         toast.error(
           `Failed to remove shift: ${
             error instanceof Error ? error.message : "Unknown error"
           }`
         );
       } finally {
-   
         setLoadingShiftIds((prev) => {
           const newSet = new Set(prev);
           newSet.delete(id);
@@ -707,7 +846,7 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
         });
       }
     },
-    [shifts, setShifts, deleteSchedule, status.deleteStatus]
+    [shifts, setShifts, users]
   );
 
   const handleModalSubmit = useCallback(
@@ -740,19 +879,29 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
     },
     [locationId, users, handleDropUser]
   );
-
-
+  const fetchScheduleRef = useRef(fetchSchedule);
+  fetchScheduleRef.current = fetchSchedule;
   useEffect(() => {
     if (locationId) {
-      fetchSchedule({
-        overrideSiteId: locationId,
-        overrideStartDate: startDate.toISOString(),
-        overrideEndDate: endDate.toISOString(),
-        overrideSiteChanged: true,
-      });
-    }
-  }, [startDate, endDate, locationId, fetchSchedule]);
+      const fetchKey = `${locationId}-${startDate.toISOString()}-${endDate.toISOString()}`;
 
+      if (skipNextFetchRef.current) {
+        skipNextFetchRef.current = false;
+        lastFetchedRef.current = fetchKey;
+        return;
+      }
+
+      if (lastFetchedRef.current !== fetchKey) {
+        lastFetchedRef.current = fetchKey;
+        fetchScheduleRef.current({
+          overrideSiteId: locationId,
+          overrideStartDate: startDate.toISOString(),
+          overrideEndDate: endDate.toISOString(),
+          overrideSiteChanged: true,
+        });
+      }
+    }
+  }, [startDate, endDate, locationId]);
 
   useEffect(() => {
     if (!locationId) {
@@ -806,13 +955,17 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ 
-                minWidth: 100, 
-                bgcolor: "background.paper",
-                border: "1px solid",
-                borderColor: "divider",
-              }}>
-                <Typography variant="subtitle2" fontWeight="bold">Time</Typography>
+              <TableCell
+                sx={{
+                  minWidth: 100,
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight="bold">
+                  Time
+                </Typography>
               </TableCell>
               <WeekHeader
                 weekHeaders={weekHeaders}
@@ -891,7 +1044,6 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
     </Card>
   );
 };
-
 
 DropTargetCell.propTypes = {
   // @ts-ignore

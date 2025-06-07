@@ -178,18 +178,22 @@ const getRandomShiftTimes = (
   locationId: string,
   dayIndex: number
 ): { start: number; duration: number } => {
-  // Create location-specific randomness
   const seed =
     locationId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) +
     dayIndex;
 
-  const possibleStarts = [6, 7, 8, 9, 10, 14, 15, 16, 18, 22];
-  const possibleDurations = [4, 6, 8, 10, 12];
+  const shiftPatterns = [
+    { start: 6, duration: 8 },
+    { start: 14, duration: 8 },
+    { start: 22, duration: 8 },
+    { start: 6, duration: 16 },
+    { start: 18, duration: 16 },
+    { start: 0, duration: 24 },
+    { start: 8, duration: 24 },
+  ];
 
-  const startHour = possibleStarts[seed % possibleStarts.length];
-  const duration = possibleDurations[(seed + 1) % possibleDurations.length];
-
-  return { start: startHour, duration };
+  const selectedPattern = shiftPatterns[seed % shiftPatterns.length];
+  return { start: selectedPattern.start, duration: selectedPattern.duration };
 };
 
 const generateShiftsForLocation = (
@@ -198,13 +202,14 @@ const generateShiftsForLocation = (
   endDate: Date
 ): Shift[] => {
   const cacheKey = `${locationId}-${startDate.toISOString()}-${endDate.toISOString()}`;
-
   if (generatedShiftsCache.has(cacheKey)) {
     return shifts.filter(
       (shift) =>
         shift.locationId === locationId &&
         new Date(shift.startTime) >= startDate &&
-        new Date(shift.endTime) <= endDate
+        new Date(shift.endTime) <= endDate &&
+        shift.id &&
+        shift.id.startsWith(locationId)
     );
   }
 
@@ -244,24 +249,29 @@ const generateShiftsForLocation = (
       const shiftEndTime = new Date(shiftStartTime);
       shiftEndTime.setHours(shiftStartTime.getHours() + duration);
 
-      const hasConflict = shifts.some(
-        (existingShift) =>
-          existingShift.userId === userId &&
-          new Date(existingShift.startTime) < shiftEndTime &&
-          new Date(existingShift.endTime) > shiftStartTime
-      );
+      if (shiftStartTime >= startDate && shiftEndTime <= endDate) {
+        const hasConflict = shifts.some(
+          (existingShift) =>
+            existingShift.userId === userId &&
+            existingShift.locationId === locationId &&
+            new Date(existingShift.startTime) < shiftEndTime &&
+            new Date(existingShift.endTime) > shiftStartTime
+        );
 
-      if (!hasConflict) {
-        const newShift: Shift = {
-          id: `${locationId}-${userId}-${dayIndex}-${userIndex}-${Date.now()}`,
-          userId,
-          locationId,
-          startTime: shiftStartTime.toISOString(),
-          endTime: shiftEndTime.toISOString(),
-          shiftType: "Normal",
-        };
+        if (!hasConflict) {
+          const deterministicId = `${locationId}-${userId}-${dayIndex}-${userIndex}-${start}-${duration}`;
 
-        newShifts.push(newShift);
+          const newShift: Shift = {
+            id: deterministicId,
+            userId,
+            locationId,
+            startTime: shiftStartTime.toISOString(),
+            endTime: shiftEndTime.toISOString(),
+            shiftType: "Normal",
+          };
+
+          newShifts.push(newShift);
+        }
       }
     });
   }
@@ -284,6 +294,36 @@ export const mockGetShiftsByLocationId = (
       const start = new Date(startTime);
       const end = new Date(endTime);
 
+      const manualShifts = shifts.filter(
+        (shift) =>
+          shift.locationId === locationId &&
+          new Date(shift.startTime) >= start &&
+          new Date(shift.endTime) <= end &&
+          shift.id &&
+          !shift.id.startsWith(locationId)
+      );
+
+      const generatedShifts = generateShiftsForLocation(locationId, start, end);
+
+      const allShifts = [...generatedShifts, ...manualShifts];
+
+      resolve(allShifts);
+    }, 10);
+  });
+};
+
+export const mockGetExistingShiftsByLocationId = (
+  locationId: string,
+  startTime: string,
+  endTime: string,
+  config?: any
+): Promise<Shift[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+
+      // Only return existing shifts, don't generate new ones
       const existingShifts = shifts.filter(
         (shift) =>
           shift.locationId === locationId &&
@@ -291,14 +331,7 @@ export const mockGetShiftsByLocationId = (
           new Date(shift.endTime) <= end
       );
 
-      if (existingShifts.length > 0) {
-        resolve(existingShifts);
-        return;
-      }
-
-      const generatedShifts = generateShiftsForLocation(locationId, start, end);
-
-      resolve(generatedShifts);
+      resolve(existingShifts);
     }, 10);
   });
 };
@@ -350,18 +383,77 @@ export const mockDeleteShift = (
     setTimeout(() => {
       const index = shifts.findIndex((s) => s.id === shiftId);
       if (index !== -1) {
-        const deletedShift = shifts[index];
         shifts.splice(index, 1);
-
-        const locationId = deletedShift.locationId ?? "";
-        const keysToDelete = Array.from(generatedShiftsCache.keys()).filter(
-          (key) => key.startsWith(locationId)
-        );
-        keysToDelete.forEach((key) => generatedShiftsCache.delete(key));
-
         resolve();
       } else {
         reject(new Error("Shift not found"));
+      }
+    }, 10);
+  });
+};
+
+// New function for partial shift deletion based on time interval
+export const mockDeleteShiftPartial = (
+  shiftId: string,
+  deleteStartTime: string,
+  deleteEndTime: string,
+  config?: ApiRequestConfig
+): Promise<{
+  deletedInterval: { start: string; end: string };
+  resultingShifts: number;
+  isFullDeletion: boolean;
+  newShifts: Shift[];
+}> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const shiftIndex = shifts.findIndex((s) => s.id === shiftId);
+      if (shiftIndex === -1) {
+        reject(new Error("Shift not found"));
+        return;
+      }
+
+      const originalShift = shifts[shiftIndex];
+      const deleteStart = new Date(deleteStartTime);
+      const deleteEnd = new Date(deleteEndTime);
+      const shiftStart = new Date(originalShift.startTime);
+      const shiftEnd = new Date(originalShift.endTime);
+
+      if (deleteStart <= shiftStart && deleteEnd >= shiftEnd) {
+        shifts.splice(shiftIndex, 1);
+        resolve({
+          deletedInterval: { start: deleteStartTime, end: deleteEndTime },
+          resultingShifts: 0,
+          isFullDeletion: true,
+          newShifts: [],
+        });
+      } else {
+        const newShifts: Shift[] = [];
+        if (deleteStart > shiftStart) {
+          newShifts.push({
+            ...originalShift,
+            id: `${originalShift.id}-segment-1`,
+            endTime: deleteStart.toISOString(),
+          });
+        }
+
+        // Keep the part after deletion (if any)
+        if (deleteEnd < shiftEnd) {
+          newShifts.push({
+            ...originalShift,
+            id: `${originalShift.id}-segment-2`,
+            startTime: deleteEnd.toISOString(),
+          });
+        }
+
+        // Replace original shift with new segments
+        shifts.splice(shiftIndex, 1, ...newShifts);
+
+        resolve({
+          deletedInterval: { start: deleteStartTime, end: deleteEndTime },
+          resultingShifts: newShifts.length,
+          isFullDeletion: false,
+          newShifts: newShifts,
+        });
       }
     }, 10);
   });
@@ -388,15 +480,19 @@ export const mockCreateShift = (
   newShift: Shift,
   config?: ApiRequestConfig
 ): Promise<Shift> => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const shiftWithId = {
-        ...newShift,
-        id: newShift.id || uuidv4(),
-      };
+      try {
+        const shiftWithId = {
+          ...newShift,
+          id: newShift.id || uuidv4(),
+        };
 
-      shifts.push(shiftWithId);
-      resolve(shiftWithId);
+        shifts.push(shiftWithId);
+        resolve(shiftWithId);
+      } catch (error) {
+        reject(new Error("Failed to create shift"));
+      }
     }, 10);
   });
 };

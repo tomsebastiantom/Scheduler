@@ -3,9 +3,10 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import SvgIcon from "@mui/material/SvgIcon";
+import PeopleIcon from "@mui/icons-material/People";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
-import UsersIcon from "src/icons/users";
-import ReceiptCheckIcon from "src/icons/receipt-check";
 import { tokens } from "src/locales/tokens";
 import { paths } from "src/paths";
 
@@ -36,7 +37,7 @@ export const useSections = () => {
             path: paths.dashboard.users.index,
             icon: (
               <SvgIcon fontSize="small">
-                <UsersIcon />
+                <PeopleIcon />
               </SvgIcon>
             ),
           },
@@ -45,17 +46,16 @@ export const useSections = () => {
             path: paths.dashboard.locations.index,
             icon: (
               <SvgIcon fontSize="small">
-                <ReceiptCheckIcon />
+                <LocationOnIcon />
               </SvgIcon>
             ),
           },
-
           {
             title: t(tokens.nav.scheduling),
             path: paths.dashboard.scheduling.index,
             icon: (
               <SvgIcon fontSize="small">
-                <ReceiptCheckIcon />
+                <CalendarMonthIcon />
               </SvgIcon>
             ),
           },

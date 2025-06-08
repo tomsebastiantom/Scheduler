@@ -28,20 +28,15 @@ interface Filters {
 type SortDir = "asc" | "desc";
 
 interface UsersSearchState {
-
   page: number;
   rowsPerPage: number;
-
 }
 
 const useUsersSearch = (users: User[], usersCount: number) => {
   const [state, setState] = useState<UsersSearchState>({
- 
     page: 0,
     rowsPerPage: 5,
-   
   });
-
 
   const handlePageChange = useCallback(
     (event: MouseEvent<HTMLButtonElement> | null, page: number): void => {
@@ -58,6 +53,7 @@ const useUsersSearch = (users: User[], usersCount: number) => {
       setState((prevState) => ({
         ...prevState,
         rowsPerPage: parseInt(event.target.value, 10),
+        page: 0, // Reset to first page when changing rows per page
       }));
     },
     []
@@ -69,7 +65,6 @@ const useUsersSearch = (users: User[], usersCount: number) => {
   }, [state.page, state.rowsPerPage, users]);
 
   return {
-   
     handlePageChange,
     handleRowsPerPageChange,
     usersCount,
@@ -81,6 +76,7 @@ const useUsersSearch = (users: User[], usersCount: number) => {
 interface UsersStoreState {
   users: User[];
   usersCount: number;
+  loading: boolean;
 }
 
 const useUsersStore = () => {
@@ -88,20 +84,26 @@ const useUsersStore = () => {
   const [state, setState] = useState<UsersStoreState>({
     users: [],
     usersCount: 0,
+    loading: true,
   });
 
   const handleUsersGet = async () => {
     try {
+      setState((prev) => ({ ...prev, loading: true }));
       const response = await mockGetAllUsers();
       console.log(response);
       if (isMounted()) {
         setState({
           users: response,
           usersCount: response.length,
+          loading: false,
         });
       }
     } catch (err) {
       console.error(err);
+      if (isMounted()) {
+        setState((prev) => ({ ...prev, loading: false }));
+      }
     }
   };
 
@@ -134,8 +136,7 @@ const Page = () => {
   const usersSearch = useUsersSearch(usersStore.users, usersStore.usersCount);
   const dialog = useDialog<string>();
   const currentUser = useCurrentUser(usersStore.users, dialog.data);
-  const [addUser,setAddUser] = useState<boolean>(false);
-
+  const [addUser, setAddUser] = useState<boolean>(false);
 
   const handleUserOpen = useCallback(
     (userId?: string): void => {
@@ -149,13 +150,10 @@ const Page = () => {
     },
     [dialog]
   );
-  const handleUserAdd = useCallback(
-    (): void => {
-      setAddUser(true);
-     dialog.handleOpen("");
-    },
-    [dialog]
-  );
+  const handleUserAdd = useCallback((): void => {
+    setAddUser(true);
+    dialog.handleOpen("");
+  }, [dialog]);
   return (
     <>
       <Seo title="Dashboard: Users List" />
@@ -207,8 +205,7 @@ const Page = () => {
                 </div>
               </Stack>
             </Box>
-            <Divider />
-      
+            <Divider />{" "}
             <UserListTable
               count={usersStore.usersCount}
               items={usersSearch.paginatedUsers}
@@ -217,6 +214,7 @@ const Page = () => {
               onSelect={handleUserOpen}
               page={usersSearch.state.page}
               rowsPerPage={usersSearch.state.rowsPerPage}
+              loading={usersStore.loading}
             />
           </UserListContainer>
           <UserDrawer

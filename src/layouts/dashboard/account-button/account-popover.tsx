@@ -1,26 +1,26 @@
-import type { FC } from 'react';
-import { useCallback } from 'react';
-import PropTypes from 'prop-types';
-import toast from 'react-hot-toast';
-import CreditCard01Icon from '@untitled-ui/icons-react/build/esm/CreditCard01';
-import Settings04Icon from '@untitled-ui/icons-react/build/esm/Settings04';
-import User03Icon from '@untitled-ui/icons-react/build/esm/User03';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Popover from '@mui/material/Popover';
-import SvgIcon from '@mui/material/SvgIcon';
-import Typography from '@mui/material/Typography';
+import type { FC } from "react";
+import { useCallback } from "react";
+import PropTypes from "prop-types";
+import toast from "react-hot-toast";
+import User01Icon from "@untitled-ui/icons-react/build/esm/User01";
+import PlusIcon from "@untitled-ui/icons-react/build/esm/Plus";
+import Mail01Icon from "@untitled-ui/icons-react/build/esm/Mail01";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Popover from "@mui/material/Popover";
+import SvgIcon from "@mui/material/SvgIcon";
+import Typography from "@mui/material/Typography";
 
-import { RouterLink } from 'src/components/router-link';
-import { useAuth } from 'src/hooks/use-auth';
-import { useMockedUser } from 'src/hooks/use-mocked-user';
-import { useRouter } from 'src/hooks/use-router';
-import { paths } from 'src/paths';
-import { Issuer } from 'src/utils/auth';
+import { RouterLink } from "src/components/router-link";
+import { useAuth } from "src/hooks/use-auth";
+import { useMockedUser } from "src/hooks/use-mocked-user";
+import { useRouter } from "src/hooks/use-router";
+import { paths } from "src/paths";
+import { Issuer } from "src/utils/auth";
 
 interface AccountPopoverProps {
   anchorEl: null | Element;
@@ -34,39 +34,34 @@ export const AccountPopover: FC<AccountPopoverProps> = (props) => {
   const auth = useAuth();
   const user = useMockedUser();
 
-  const handleLogout = useCallback(
-    async (): Promise<void> => {
-      try {
-        onClose?.();
+  const handleLogout = useCallback(async (): Promise<void> => {
+    try {
+      onClose?.();
 
-        switch (auth.issuer) {
-      
-
-          case Issuer.JWT: {
-            await auth.signOut();
-            break;
-          }
-
-          default: {
-            console.warn('Using an unknown Issuer, naay');
-          }
+      switch (auth.issuer) {
+        case Issuer.JWT: {
+          await auth.signOut();
+          break;
         }
 
-        router.push(paths.index);
-      } catch (err) {
-        console.error(err);
-        toast.error('Oops It didnot work out!');
+        default: {
+          console.warn("Using an unknown Issuer, naay");
+        }
       }
-    },
-    [auth, router, onClose]
-  );
+
+      router.push(paths.index);
+    } catch (err) {
+      console.error(err);
+      toast.error("Oops It didnot work out!");
+    }
+  }, [auth, router, onClose]);
 
   return (
     <Popover
       anchorEl={anchorEl}
       anchorOrigin={{
-        horizontal: 'center',
-        vertical: 'bottom'
+        horizontal: "center",
+        vertical: "bottom",
       }}
       disableScrollLock
       onClose={onClose}
@@ -75,13 +70,13 @@ export const AccountPopover: FC<AccountPopoverProps> = (props) => {
       {...other}
     >
       <Box sx={{ p: 2 }}>
-        <Typography align="center"variant="body1">
-         Welcome
+        <Typography align="center" variant="body1">
+          Welcome
         </Typography>
-    
       </Box>
       <Divider />
       <Box sx={{ p: 1 }}>
+        {" "}
         <ListItemButton
           component={RouterLink}
           href={paths.dashboard.users.index}
@@ -89,22 +84,18 @@ export const AccountPopover: FC<AccountPopoverProps> = (props) => {
           sx={{
             borderRadius: 1,
             px: 1,
-            py: 0.5
+            py: 0.5,
           }}
         >
           <ListItemIcon>
             <SvgIcon fontSize="small">
-              <User03Icon />
+              <User01Icon />
             </SvgIcon>
           </ListItemIcon>
           <ListItemText
-            primary={(
-              <Typography variant="body1">
-                Users
-              </Typography>
-            )}
+            primary={<Typography variant="body1">Users</Typography>}
           />
-        </ListItemButton>
+        </ListItemButton>{" "}
         <ListItemButton
           component={RouterLink}
           href={paths.dashboard.index}
@@ -112,22 +103,18 @@ export const AccountPopover: FC<AccountPopoverProps> = (props) => {
           sx={{
             borderRadius: 1,
             px: 1,
-            py: 0.5
+            py: 0.5,
           }}
         >
           <ListItemIcon>
             <SvgIcon fontSize="small">
-              <Settings04Icon />
+              <PlusIcon />
             </SvgIcon>
           </ListItemIcon>
           <ListItemText
-            primary={(
-              <Typography variant="body1">
-                Locations
-              </Typography>
-            )}
+            primary={<Typography variant="body1">Locations</Typography>}
           />
-        </ListItemButton>
+        </ListItemButton>{" "}
         <ListItemButton
           component={RouterLink}
           href={paths.dashboard.scheduling.index}
@@ -135,36 +122,28 @@ export const AccountPopover: FC<AccountPopoverProps> = (props) => {
           sx={{
             borderRadius: 1,
             px: 1,
-            py: 0.5
+            py: 0.5,
           }}
         >
           <ListItemIcon>
             <SvgIcon fontSize="small">
-              <CreditCard01Icon />
+              <Mail01Icon />
             </SvgIcon>
           </ListItemIcon>
           <ListItemText
-            primary={(
-              <Typography variant="body1">
-                Scheduling
-              </Typography>
-            )}
+            primary={<Typography variant="body1">Scheduling</Typography>}
           />
         </ListItemButton>
       </Box>
-      <Divider sx={{ my: '0 !important' }} />
+      <Divider sx={{ my: "0 !important" }} />
       <Box
         sx={{
-          display: 'flex',
+          display: "flex",
           p: 1,
-          justifyContent: 'center'
+          justifyContent: "center",
         }}
       >
-        <Button
-          color="inherit"
-          onClick={handleLogout}
-          size="small"
-        >
+        <Button color="inherit" onClick={handleLogout} size="small">
           Logout
         </Button>
       </Box>
@@ -175,5 +154,5 @@ export const AccountPopover: FC<AccountPopoverProps> = (props) => {
 AccountPopover.propTypes = {
   anchorEl: PropTypes.any,
   onClose: PropTypes.func,
-  open: PropTypes.bool
+  open: PropTypes.bool,
 };

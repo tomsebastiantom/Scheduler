@@ -31,6 +31,7 @@ interface LocationsSearchState {
 interface LocationsStoreState {
   locations: any;
   locationsCount: number;
+  loading: boolean;
 }
 
 const useLocationsStore = () => {
@@ -38,19 +39,25 @@ const useLocationsStore = () => {
   const [state, setState] = useState<LocationsStoreState>({
     locations: [],
     locationsCount: 0,
+    loading: true,
   });
 
   const fetchLocations = async () => {
     try {
+      setState((prev) => ({ ...prev, loading: true }));
       const response = await mockGetAllLocations();
       if (isMounted()) {
         setState({
           locations: response,
           locationsCount: response.length,
+          loading: false,
         });
       }
     } catch (err) {
       console.error(err);
+      if (isMounted()) {
+        setState((prev) => ({ ...prev, loading: false }));
+      }
     }
   };
 
@@ -78,12 +85,12 @@ const useLocationsSearch = (locations: Location[], locationsCount: number) => {
     },
     []
   );
-
   const handleRowsPerPageChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>): void => {
       setState((prevState) => ({
         ...prevState,
         rowsPerPage: parseInt(event.target.value, 10),
+        page: 0, // Reset to first page when changing rows per page
       }));
     },
     []
@@ -112,11 +119,12 @@ const useLocationsIds = (locations: Location[] = []) => {
 
 const Page = () => {
   const locationsStore = useLocationsStore();
-  const locationsSearch = useLocationsSearch(locationsStore.locations, locationsStore.locationsCount);
+  const locationsSearch = useLocationsSearch(
+    locationsStore.locations,
+    locationsStore.locationsCount
+  );
   const locationIds = useLocationsIds(locationsSearch.paginatedLocations);
   const locationSelection = useSelection<string>(locationIds);
-
-
 
   return (
     <>
@@ -155,6 +163,7 @@ const Page = () => {
               </Stack>
             </Stack>
             <Card>
+              {" "}
               <LocationListTable
                 count={locationsStore.locationsCount}
                 items={locationsSearch.paginatedLocations}
@@ -167,6 +176,7 @@ const Page = () => {
                 page={locationsSearch.state.page}
                 rowsPerPage={locationsSearch.state.rowsPerPage}
                 selected={locationSelection.selected}
+                loading={locationsStore.loading}
               />
             </Card>
           </Stack>

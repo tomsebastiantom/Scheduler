@@ -808,7 +808,7 @@ export const ScheduleCalender: FC<ScheduleCalenderProps> = (props) => {
             <div
               style={{ display: "flex", flexDirection: "column", gap: "4px" }}
             >
-              <span>{userName}'s shift updated</span>
+              <span>{userName}&apos;s shift updated</span>
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
               >

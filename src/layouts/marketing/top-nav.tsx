@@ -195,14 +195,14 @@ export const TopNav: FC<TopNavProps> = (props) => {
             spacing={2}
             sx={{ flexGrow: 1 }}
           >
-            <Button
+            {/* <Button
               component="a"
               size={mdUp ? 'medium' : 'small'}
               href={paths.login}
               variant="contained"
             >
               Login
-            </Button>
+            </Button> */}
             {!mdUp && (
               <IconButton onClick={onMobileNavOpen}>
                 <SvgIcon fontSize="small">
